@@ -1,40 +1,51 @@
 import streamlit as st
-from huggingface_hub import list_repo_files
+import json
+from huggingface_hub import hf_hub_download
+from safetensors import safe_open
 
-# ページのタイトル設定
-st.set_page_config(page_title="Hugging Face リポジトリチェッカー", page_icon="🤗")
+st.set_page_config(page_title="HF Model Loader", page_icon="🤗", layout="wide")
 
-st.title("🤗 Hugging Face リポジトリチェッカー")
-st.write("指定したリポジトリに `config.json` があるか、どんなファイルがあるかを確認します。")
+st.title("🤗 Hugging Faceモデル内部メタデータ解析器")
+st.write("`model.safetensors` の内部に隠されている設定（config）を読み取ります。")
 
-# 入力フォーム（デフォルトで今回のリポジトリを入力）
+# 入力欄
 repo_id = st.text_input("Hugging Face リポジトリID", value="User-Android/AI")
+filename = st.text_input("ファイル名", value="model.safetensors")
 
-# 確認ボタン
-if st.button("ファイルをチェックする"):
-    if not repo_id:
-        st.warning("リポジトリIDを入力してください。")
-    else:
-        with st.spinner("🔍 Hugging Faceからファイル一覧を取得中..."):
-            try:
-                # ファイル一覧を取得
-                file_list = list_repo_files(repo_id=repo_id)
+if st.button("モデルの内部を解析する"):
+    with st.spinner("⏳ モデルファイルをダウンロードして解析中... (初回は時間がかかります)"):
+        try:
+            # 1. ファイルのダウンロード
+            file_path = hf_hub_download(repo_id=repo_id, filename=filename)
+            
+            # 2. safetensorsの内部メタデータを取得
+            with safe_open(file_path, framework="pt") as f:
+                metadata = f.metadata()
+            
+            # 3. 結果の表示
+            if metadata:
+                st.success("✅ ファイル内部から設定データ（メタデータ）を検出しました！")
                 
-                # config.json の有無を判定
-                if "config.json" in file_list:
-                    st.success("✅ **'config.json' が見つかりました！**")
-                    st.info("このモデルは通常の `transformers` ライブラリなどで直接読み込める可能性が高いです。")
-                else:
-                    st.error("❌ **'config.json' は見つかりませんでした。**")
-                    st.warning("設定ファイルがないため、親モデルを指定するLoRAなどの可能性があります。")
+                # メタデータの中身を綺麗に表示
+                st.subheader("📊 検出された設定情報 (Metadata)")
                 
-                # ファイル一覧を綺麗に表示
-                st.subheader("📄 リポジトリ内のファイル一覧")
-                # マークダウンのリスト形式に変換して表示
-                files_markdown = "\n".join([f"- `{file}`" for file in file_list])
-                st.markdown(files_markdown)
+                # もし文字列のJSONが入っていればパースを試みる
+                parsed_metadata = {}
+                for k, v in metadata.items():
+                    try:
+                        parsed_metadata[k] = json.loads(v)
+                    except:
+                        parsed_metadata[k] = v
                 
-            except Exception as e:
-                st.error("❌ エラーが発生しました")
-                st.code(str(e))
-                st.caption("リポジトリ名が正しいか、または公開（Public）リポジトリであるか確認してください。")
+                st.json(parsed_metadata)
+                
+                # 推定されるアーキテクチャのヒント
+                st.info("💡 この設定情報を元に、transformersやllama.cppなどのライブラリに読み込ませてテキスト生成を実行させることができます。")
+                
+            else:
+                st.warning("⚠️ ファイルは読み込めましたが、内部にメタデータ（config）は埋め込まれていませんでした。")
+                st.write("通常の重みデータのみの可能性があります。")
+                
+        except Exception as e:
+            st.error("❌ 解析中にエラーが発生しました")
+            st.code(str(e))
