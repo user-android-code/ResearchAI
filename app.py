@@ -6,7 +6,7 @@ from transformers import Qwen2Config, Qwen2ForCausalLM, AutoTokenizer
 
 st.set_page_config(page_title="Custom LLM Chat", page_icon="🤖", layout="wide")
 
-st.title("🤖 自作超小型LLM テキスト生成アプリ (エラー修正版)")
+st.title("🤖 自作超小型LLM テキスト生成アプリ (修正版)")
 
 REPO_ID = "User-Android/AI"
 FILENAME = "model.safetensors"
@@ -16,15 +16,16 @@ def load_custom_model():
     file_path = hf_hub_download(repo_id=REPO_ID, filename=FILENAME)
     weights = load_file(file_path)
     
-    # モデル自身のサイズを計測
-    vocab_size, hidden_size = weights["model.embed_tokens.weight"].shape
-    intermediate_size = weights["model.layers.0.mlp.up_proj.weight"].shape
+    # 【修正箇所】[0] や [1] を指定して、正確な数値（int）として取り出します
+    vocab_size = weights["model.embed_tokens.weight"].shape[0]
+    hidden_size = weights["model.embed_tokens.weight"].shape[1]
+    intermediate_size = weights["model.layers.0.mlp.up_proj.weight"].shape[0]
     
     config = Qwen2Config(
         vocab_size=vocab_size,
         hidden_size=hidden_size,
         intermediate_size=intermediate_size,
-        num_hidden_layers=6,
+        num_hidden_layers=6,  # 変数一覧から全6レイヤーと判定
         num_attention_heads=16,
         num_key_value_heads=16,
         hidden_act="silu",
@@ -37,7 +38,7 @@ def load_custom_model():
     model.load_state_dict(weights, strict=True)
     model.eval()
     
-    # 一旦、Qwen2のトークナイザーを読み込む
+    # 互換性のあるQwen2のトークナイザーを読み込み
     tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-0.5B-Instruct")
     
     return model, tokenizer, vocab_size
@@ -46,7 +47,7 @@ try:
     model, tokenizer, model_vocab_size = load_custom_model()
     
     # 画面に現在の語彙数ステータスを表示
-    st.success("🎉 モデルの読み込み自体は成功しています！")
+    st.success("🎉 モデルの構造解析と読み込みに成功しました！")
     st.metric(label="モデルの実際の語彙数 (vocab_size)", value=model_vocab_size)
     st.write(f"※使用中のトークナイザーの語彙数: {tokenizer.vocab_size}")
     
@@ -64,8 +65,7 @@ if st.button("テキストを生成する"):
         # 1. テキストをトークンIDに変換
         inputs = tokenizer(prompt, return_tensors="pt")
         
-        # 🔥【安全対策】モデルの最大語彙数を超えるIDを、安全なID(0)に置き換える（エラー防止）
-        # これにより、トークナイザーが大きすぎるIDを出してもエラーで落ちなくなります
+        # モデルの最大語彙数を超えるIDを安全なID(0)に置き換える（エラー防止）
         inputs["input_ids"] = torch.where(
             inputs["input_ids"] >= model_vocab_size, 
             torch.tensor(0, device=inputs["input_ids"].device), 
