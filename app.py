@@ -6,7 +6,7 @@ from transformers import Qwen2Config, Qwen2ForCausalLM, AutoTokenizer
 
 st.set_page_config(page_title="Custom LLM Chat", page_icon="🤖", layout="wide")
 
-st.title("🤖 自作超小型LLM テキスト生成アプリ (修正版)")
+st.title("🤖 自作超小型LLM テキスト生成アプリ (エラー修正版)")
 
 REPO_ID = "User-Android/AI"
 FILENAME = "model.safetensors"
@@ -16,7 +16,7 @@ def load_custom_model():
     file_path = hf_hub_download(repo_id=REPO_ID, filename=FILENAME)
     weights = load_file(file_path)
     
-    # 【修正箇所】[0] や [1] を指定して、正確な数値（int）として取り出します
+    # 【重要】[0] や [1] を指定して、タプルから整数(int)として値を取り出します
     vocab_size = weights["model.embed_tokens.weight"].shape[0]
     hidden_size = weights["model.embed_tokens.weight"].shape[1]
     intermediate_size = weights["model.layers.0.mlp.up_proj.weight"].shape[0]
@@ -25,7 +25,7 @@ def load_custom_model():
         vocab_size=vocab_size,
         hidden_size=hidden_size,
         intermediate_size=intermediate_size,
-        num_hidden_layers=6,  # 変数一覧から全6レイヤーと判定
+        num_hidden_layers=6,  # 75個の変数から6層と特定
         num_attention_heads=16,
         num_key_value_heads=16,
         hidden_act="silu",
@@ -38,7 +38,7 @@ def load_custom_model():
     model.load_state_dict(weights, strict=True)
     model.eval()
     
-    # 互換性のあるQwen2のトークナイザーを読み込み
+    # 一旦、Qwen2用の標準トークナイザーを使用
     tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-0.5B-Instruct")
     
     return model, tokenizer, vocab_size
@@ -46,7 +46,7 @@ def load_custom_model():
 try:
     model, tokenizer, model_vocab_size = load_custom_model()
     
-    # 画面に現在の語彙数ステータスを表示
+    # 画面にステータスと、判明した本来の語彙数を表示
     st.success("🎉 モデルの構造解析と読み込みに成功しました！")
     st.metric(label="モデルの実際の語彙数 (vocab_size)", value=model_vocab_size)
     st.write(f"※使用中のトークナイザーの語彙数: {tokenizer.vocab_size}")
