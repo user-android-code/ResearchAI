@@ -5,46 +5,43 @@ from safetensors import safe_open
 
 st.set_page_config(page_title="HF Model Loader", page_icon="🤗", layout="wide")
 
-st.title("🤗 Hugging Faceモデル内部メタデータ解析器")
-st.write("`model.safetensors` の内部に隠されている設定（config）を読み取ります。")
+st.title("🤗 Hugging Faceモデル内部構造 解析器")
+st.write("`model.safetensors` の内部にある重みの変数名（キー名）を一覧表示して、モデルの正体を突き止めます。")
 
 # 入力欄
 repo_id = st.text_input("Hugging Face リポジトリID", value="User-Android/AI")
 filename = st.text_input("ファイル名", value="model.safetensors")
 
-if st.button("モデルの内部を解析する"):
-    with st.spinner("⏳ モデルファイルをダウンロードして解析中... (初回は時間がかかります)"):
+if st.button("モデルの内部（キー名）を解析する"):
+    with st.spinner("⏳ モデルファイルをダウンロードして解析中..."):
         try:
             # 1. ファイルのダウンロード
             file_path = hf_hub_download(repo_id=repo_id, filename=filename)
             
-            # 2. safetensorsの内部メタデータを取得
+            # 2. safetensorsを開いてキー（テンソル名）の一覧を取得
             with safe_open(file_path, framework="pt") as f:
-                metadata = f.metadata()
+                tensor_keys = f.keys()
             
-            # 3. 結果の表示
-            if metadata:
-                st.success("✅ ファイル内部から設定データ（メタデータ）を検出しました！")
-                
-                # メタデータの中身を綺麗に表示
-                st.subheader("📊 検出された設定情報 (Metadata)")
-                
-                # もし文字列のJSONが入っていればパースを試みる
-                parsed_metadata = {}
-                for k, v in metadata.items():
-                    try:
-                        parsed_metadata[k] = json.loads(v)
-                    except:
-                        parsed_metadata[k] = v
-                
-                st.json(parsed_metadata)
-                
-                # 推定されるアーキテクチャのヒント
-                st.info("💡 この設定情報を元に、transformersやllama.cppなどのライブラリに読み込ませてテキスト生成を実行させることができます。")
-                
+            st.success(f"✅ ファイルの解析に成功しました！ 内包されている変数の数: {len(tensor_keys)}個")
+            
+            # 3. LoRAかどうかの簡易判定
+            is_lora = any("lora" in k.lower() for k in tensor_keys)
+            if is_lora:
+                st.info("💡 判定結果: 変数名に 'lora' が含まれています。ベースモデル（親）に被せて使う【LoRAアダプター】の可能性が高いです。")
             else:
-                st.warning("⚠️ ファイルは読み込めましたが、内部にメタデータ（config）は埋め込まれていませんでした。")
-                st.write("通常の重みデータのみの可能性があります。")
+                st.warning("💡 判定結果: 'lora' という文字は見当たりません。独自の自作モデルか、特殊な形式の可能性があります。")
+            
+            # 4. キー名の一覧を表示
+            st.subheader("📊 内部の変数名（キー）一覧（先頭50個）")
+            st.write("これらの名前のパターンから、ベースになっているAIの種類を推測できます。")
+            
+            # リスト形式で表示
+            keys_to_show = list(tensor_keys)[:50]
+            for k in keys_to_show:
+                st.code(k)
+                
+            if len(tensor_keys) > 50:
+                st.caption(f"...残り {len(tensor_keys) - 50} 個の変数は省略しました。")
                 
         except Exception as e:
             st.error("❌ 解析中にエラーが発生しました")
