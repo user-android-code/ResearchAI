@@ -5,3 +5,4 @@ accelerate
 safetensors
 torch
 pillow
+torchvision
