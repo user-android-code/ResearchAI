@@ -3,7 +3,6 @@ import cv2
 import numpy as np
 import onnxruntime as ort
 from huggingface_hub import hf_hub_download
-from PIL import Image
 
 # ページの設定
 st.set_page_config(page_title="AnimeGANv2 ジブリ風変換", layout="centered")
@@ -26,26 +25,23 @@ except Exception as e:
     st.error(f"モデルの読み込み中にエラーが発生しました: {e}")
     st.stop()
 
-# 2. 前処理関数の定義（エラー原因の修正対応）
+# 2. 前処理関数の定義
 def preprocess(cv_image, target_size=(512, 512)):
-    # 1. 512x512 にリサイズ
+    # 512x512 にリサイズ
     img = cv2.resize(cv_image, target_size)
-    # 2. BGR から RGB へ変換
+    # BGR から RGB へ変換
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = img.astype(np.float32)
-    # 3. モデルの期待する範囲 (-1.0 〜 1.0) に正規化
+    # モデルの期待する範囲 (-1.0 〜 1.0) に正規化
     img = (img / 127.5) - 1.0
     
-    # 【重要・エラー修正】
-    # エラー画像では index: 3 Got: 512 Expected: 3 となっています。
-    # つまり、モデルは [バッチサイズ, 高さ, 幅, チャンネル]、すなわち [1, 512, 512, 3] を期待しています。
-    # 軸を入れ替えず、そのまま先頭にバッチ次元を追加します。
-    img = np.expand_dims(img, axis=0) # 結果: [1, 512, 512, 3]
+    # バッチ次元を追加（前回の修正通り）
+    img = np.expand_dims(img, axis=0) 
     return img
 
 # 3. 後処理関数の定義
 def postprocess(output_tensor):
-    # バッチ次元を削除 [1, 512, 512, 3] -> [512, 512, 3]
+    # バッチ次元を削除
     img = np.squeeze(output_tensor, axis=0)
     # 画素値を 0 〜 255 に復元
     img = (img + 1.0) * 127.5
@@ -73,14 +69,14 @@ if uploaded_file is not None:
                 # 前処理
                 input_data = preprocess(opencv_img)
                 
-                # ONNXモデルの入力名と出力名を取得
-                input_name = session.get_inputs().name
-                output_name = session.get_outputs().name
+                # 【修正箇所】リストの0番目から .name を取得するように修正
+                input_name = session.get_inputs()[0].name
+                output_name = session.get_outputs()[0].name
                 
                 # 推論実行
                 raw_result = session.run([output_name], {input_name: input_data})
                 
-                # 後処理
+                # 後処理（モデルの出力リストから最初のデータを取り出して処理）
                 anime_img = postprocess(raw_result[0])
                 
                 # 結果の表示
