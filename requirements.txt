@@ -3,4 +3,3 @@ onnxruntime
 opencv-python-headless
 numpy
 huggingface_hub
-Pillow
