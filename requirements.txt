@@ -1,8 +1,6 @@
 streamlit
-diffusers
-transformers
-accelerate
-safetensors
-torch
-pillow
-torchvision
+onnxruntime
+opencv-python-headless
+numpy
+huggingface_hub
+Pillow
