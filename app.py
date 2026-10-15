@@ -5,9 +5,9 @@ import onnxruntime as ort
 from huggingface_hub import hf_hub_download
 
 # ページの設定
-st.set_page_config(page_title="AnimeGANv2 ジブリ風変換", layout="centered")
-st.title("🎨 AnimeGANv2 (Hayao) 画像アニメ化ツール")
-st.write("画像をアップロードすると、宮崎駿（ジブリ）監督風のタッチに変換します。")
+st.set_page_config(page_title="", layout="centered")
+st.title("")
+st.write("")
 
 # 1. Hugging FaceからONNXモデルをダウンロードしてセッションをキャッシュ
 @st.cache_resource
