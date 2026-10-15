@@ -49,7 +49,7 @@ def postprocess(output_tensor):
     return img
 
 # 4. Streamlit UI: ファイルアップローダー
-uploaded_file = st.file_uploader("画像ファイルを選択してください (png, jpg, jpeg)", type=["png", "jpg", "jpeg"])
+uploaded_file = st.file_uploader(" (png, jpg, jpeg)", type=["png", "jpg", "jpeg"])
 
 if uploaded_file is not None:
     # アップロードされた画像を OpenCV 形式に変換
