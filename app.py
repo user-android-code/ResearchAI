@@ -13,8 +13,8 @@ st.write("画像をアップロードすると、宮崎駿（ジブリ）監督�
 @st.cache_resource
 def load_onnx_model():
     model_path = hf_hub_download(
-        repo_id="IndianBeeR/AnimeGANv2_Hayao", 
-        filename="AnimeGANv2_Hayao.onnx"
+        repo_id="User-Android/Qens", 
+        filename="model.onnx"
     )
     # 推論セッションの作成
     return ort.InferenceSession(model_path)
