@@ -26,7 +26,7 @@ except Exception as e:
     st.stop()
 
 # 2. 前処理関数の定義
-def preprocess(cv_image, target_size=(1024, 512)):
+def preprocess(cv_image, target_size=(1024, 1024)):
     # 512x512 にリサイズ
     img = cv2.resize(cv_image, target_size)
     # BGR から RGB へ変換
