@@ -22,7 +22,7 @@ def load_onnx_model():
 try:
     session = load_onnx_model()
 except Exception as e:
-    st.error(f"モデルの読み込み中にエラーが発生しました: {e}")
+    st.error(f" {e}")
     st.stop()
 
 # 2. 前処理関数の定義
@@ -59,12 +59,12 @@ if uploaded_file is not None:
     # 画面に元の画像を表示
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("元の画像")
+        st.subheader("元")
         st.image(cv2.cvtColor(opencv_img, cv2.COLOR_BGR2RGB), use_container_width=True)
         
     # 変換ボタン
-    if st.button("✨ アニメ風に変換する"):
-        with st.spinner("変換中..."):
+    if st.button("開始"):
+        with st.spinner("変換中"):
             try:
                 # 前処理
                 input_data = preprocess(opencv_img)
@@ -81,9 +81,9 @@ if uploaded_file is not None:
                 
                 # 結果の表示
                 with col2:
-                    st.subheader("アニメ化画像")
+                    st.subheader("完成")
                     st.image(anime_img, use_container_width=True)
-                st.success("変換が完了しました！")
+                st.success("")
                 
             except Exception as e:
                 st.error(f"変換中にエラーが発生しました:\n{str(e)}")
